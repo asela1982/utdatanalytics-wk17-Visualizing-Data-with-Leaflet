@@ -7,7 +7,7 @@ var APIlink_plates = "https://raw.githubusercontent.com/fraxen/tectonicplates/ma
 
 // define a function to scale the magnitdue
 function markerSize(magnitude) {
-    return magnitude * 5;
+    return magnitude * 3;
 };
 
 
@@ -37,9 +37,9 @@ d3.json(APIlink_earthquakes, function (geoJson) {
 
         onEachFeature: function (feature, layer) {
             // Giving each feature a pop-up with information pertinent to it
-            layer.bindPopup( 
-            "<h5 style='text-align:center;'>" + new Date(feature.properties.time) + 
-            "</h5> <hr> <h5 style='text-align:center;'>" + feature.properties.title + "</h5>");
+            layer.bindPopup(
+                "<h5 style='text-align:center;'>" + new Date(feature.properties.time) +
+                "</h5> <hr> <h5 style='text-align:center;'>" + feature.properties.title + "</h5>");
         }
 
     }).addTo(earthquakes);
@@ -52,7 +52,7 @@ var plateBoundary = new L.LayerGroup();
 // perform a GET request to the query URL: APIlink_plates
 d3.json(APIlink_plates, function (geoJson) {
     // once we get a response, send the geoJson.features array of objects object to the L.geoJSON method
-    L.geoJSON(geoJson.features,{
+    L.geoJSON(geoJson.features, {
         style: function (geoJsonFeature) {
             return {
                 weight: 1,
@@ -86,6 +86,14 @@ function chooseColor(magnitude) {
 function createMap() {
 
     // define street map and dark map
+
+    var highContrastMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox.high-contrast',
+        accessToken: 'pk.eyJ1IjoiYXNlbGExOTgyIiwiYSI6ImNqZDNocXRlNTBoMWEyeXFmdWY1NnB2MmIifQ.ziEOjgHun64EAp4W3LlsQg'
+    });
+
     var streetMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
         maxZoom: 18,
@@ -111,6 +119,7 @@ function createMap() {
 
     // define a baselayer object to hold our base layer objects
     var baseLayers = {
+        "High Contrast": highContrastMap,
         "Street": streetMap,
         "Dark": darkMap,
         "Satellite": satellite
@@ -124,9 +133,9 @@ function createMap() {
 
     // initialize the map on the "mymap" div with a given center and zoom
     mymap = L.map('mymap', {
-        center: [30,0],
+        center: [30, 0],
         zoom: 2,
-        layers: [streetMap, earthquakes]
+        layers: [highContrastMap, earthquakes]
     })
 
     // Creates an attribution control with the given layers. 
@@ -145,14 +154,12 @@ function createMap() {
             magnitude = [0, 1, 2, 3, 4, 5],
             labels = [];
 
-            div.innerHTML += "<h4 style='margin:4px'>Magnitude</h4>"
+        div.innerHTML += "<h4 style='margin:4px'>Magnitude</h4>"
         // loop through our density intervals and generate a label with a colored square for each interval
         for (var i = 0; i < magnitude.length; i++) {
             div.innerHTML +=
                 '<i style="background:' + chooseColor(magnitude[i] + 1) + '"></i> ' +
                 magnitude[i] + (magnitude[i + 1] ? '&ndash;' + magnitude[i + 1] + '<br>' : '+');
-            console.log(div.innerHTML)
-
         }
 
         return div;
@@ -160,5 +167,93 @@ function createMap() {
     legend.addTo(mymap);
 }
 
+
+
+
+// define a function to create the heat map
+function createHeatMap() {
+
+
+    var mapHeat = L.map('mymapHeat', {
+        center: [37.7749, -122.4194],
+        zoom: 2
+    });
+
+    // add a tile layer to add to our map
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}@2x.png?access_token={accessToken}', {
+        id: 'mapbox.dark',
+        maxZoom: 18,
+        accessToken: 'pk.eyJ1IjoiYXNlbGExOTgyIiwiYSI6ImNqZDNocXRlNTBoMWEyeXFmdWY1NnB2MmIifQ.ziEOjgHun64EAp4W3LlsQg'
+    }).addTo(mapHeat);
+
+    // get data
+    d3.json(APIlink_earthquakes, function (geoJson) {
+
+        // initialize an empty array to store the coordinates. This array will then then be passed to leaflet-heat.js
+        var heatArray = []
+        var features = geoJson.features;
+
+        // loop through each feature
+        for (var i = 0; i < features.length; i++) {
+            var coords = features[i].geometry;
+
+            // if coordinates are available to proceed
+            if (coords) {
+                heatArray.push([coords.coordinates[1], coords.coordinates[0]])
+            }
+        }
+        var heat = L.heatLayer(heatArray, {
+            radius: 10,
+            minOpacity: 0.8
+        }).addTo(mapHeat);   
+    });
+   
+}
+
+
+
+// define a function to create the heat map
+function createHeatCluster() {
+
+
+    var mapCluster = L.map('mymapCluster', {
+        center: [37.7749, -122.4194],
+        zoom: 2
+    });
+
+    // add a tile layer to add to our map
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}@2x.png?access_token={accessToken}', {
+        id: 'mapbox.streets-basic',
+        maxZoom: 18,
+        accessToken: 'pk.eyJ1IjoiYXNlbGExOTgyIiwiYSI6ImNqZDNocXRlNTBoMWEyeXFmdWY1NnB2MmIifQ.ziEOjgHun64EAp4W3LlsQg'
+    }).addTo(mapCluster);
+
+    // get data
+    d3.json(APIlink_earthquakes, function (geoJson) {
+
+        // initialize an empty array to store the coordinates. This array will then then be passed to leaflet-heat.js
+        var markers = L.markerClusterGroup();
+        var features = geoJson.features;
+
+        // loop through each feature
+        for (var i = 0; i < features.length; i++) {
+            var coords = features[i].geometry;
+
+            // if coordinates are available to proceed
+            if (coords) {
+                markers.addLayer(L.marker([coords.coordinates[1], coords.coordinates[0]]))
+            }
+        }
+
+        mapCluster.addLayer(markers);  
+    });
+   
+}
+
+
+
+
 // call the create map function
 createMap()
+createHeatMap()
+createHeatCluster()
