@@ -37,13 +37,14 @@ d3.json(APIlink_earthquakes, function (geoJson) {
 
         onEachFeature: function (feature, layer) {
             // Giving each feature a pop-up with information pertinent to it
-            layer.bindPopup("<h3 style='text-align:center;'>" + feature.properties.type + "</h3> <hr> <h3 style='text-align:center;'>" + feature.properties.title + "</h3>");
+            layer.bindPopup( 
+            "<h5 style='text-align:center;'>" + new Date(feature.properties.time) + 
+            "</h5> <hr> <h5 style='text-align:center;'>" + feature.properties.title + "</h5>");
         }
 
     }).addTo(earthquakes);
 
 });
-
 
 // create a layer group for faultlines
 var plateBoundary = new L.LayerGroup();
